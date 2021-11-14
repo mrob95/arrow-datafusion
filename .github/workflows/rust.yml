@@ -235,6 +235,11 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: amd64/rust
+    # strategy:
+    #   matrix:
+    #     dir: ['.', './python']
+    # run:
+    #   working-directory: ${{ matrix.dir }}
     steps:
       - uses: actions/checkout@v2
       - name: Setup toolchain
@@ -253,6 +258,7 @@ jobs:
       matrix:
         arch: [amd64]
         rust: [stable]
+        dir: ['.', './python']
     container:
       image: ${{ matrix.arch }}/rust
       env:
@@ -272,20 +278,22 @@ jobs:
       - name: Cache Rust dependencies
         uses: actions/cache@v2
         with:
-          path: /github/home/target
+          path: /github/home/${{ matrix.dir }}/target
           # this key equals the ones on `linux-build-lib` for re-use
-          key: ${{ runner.os }}-${{ matrix.arch }}-target-cache-${{ matrix.rust }}
+          key: ${{ runner.os }}-${{ matrix.arch }}-target-cache-${{ matrix.rust }}-${{ matrix.dir }}
       - name: Setup Rust toolchain
+        working-directory: ${{ matrix.dir }}
         run: |
           rustup toolchain install ${{ matrix.rust }}
           rustup default ${{ matrix.rust }}
           rustup component add rustfmt clippy
       - name: Run clippy
+        working-directory: ${{ matrix.dir }}
         run: |
           cargo clippy --all-targets --workspace -- -D warnings
         env:
           CARGO_HOME: "/github/home/.cargo"
-          CARGO_TARGET_DIR: "/github/home/target"
+          CARGO_TARGET_DIR: "/github/home/${{ matrix.dir }}/target"
 
   miri-checks:
     name: MIRI
